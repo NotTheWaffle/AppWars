@@ -1,0 +1,23 @@
+# --- Replit ---
+.replit
+.replit.db
+*.replit
+
+# --- VS Code ---
+.vscode/
+.history/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- General logs & temp ---
+*.log
+*.tmp
+*.swp
+*.swo
+
+# --- Environment files ---
+.env.local
+.env.*
+!.env.example
