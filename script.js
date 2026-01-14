@@ -29,9 +29,9 @@ let provinces = new Map(); // province  id : province object
 let countries = new Map(); // country id : country object
 // made these so countries and provinces will have O(1) lookup times
 
-countries.set(1, new Country("Co1", "#FF0000"));
-countries.set(2, new Country("Co2", "#00FF00"));
-countries.set(3, new Country("Co3", "#0000FF"));
+countries.set(1, new Country("Red country", "#FF0000"));
+countries.set(2, new Country("Green empire", "#00FF00"));
+countries.set(3, new Country("Blue republic", "#0000FF"));
 
 let currentCountry = 0;
 let provinceall = "";
@@ -43,7 +43,7 @@ function gid(id) {
 function country(id) {
   currentCountry = id;
   if (id > 0) {
-    gid("message").innerHTML = `Editing country ${id}`;
+    gid("message").innerHTML = `Editing country ${countries.get(id).name}`;
   } else {
     gid("message").innerHTML = `Removing territories`;
   }
@@ -57,7 +57,7 @@ function removeProvince(pId) {
   p.setParent(null);
 }
 
-function setProvince(pId) {
+function setProvince(pId, parentId) {
   let selected = provinces.get(pId);
   gid("message").innerHTML = `selected ${pId}`;
   // if not null: delete province from the current country object that it is in
@@ -65,8 +65,7 @@ function setProvince(pId) {
     selected.parent.removeTerr(pId);
   }
   // set the province's country to current country object
-  selected.setParent(countries.get(currentCountry));
-  console.log(selected.parent.name);
+  selected.setParent(countries.get(parentId));
   gid("message").innerHTML = `set ${pId} parent to ${selected.parent.name}`;
   // add province to current country object
   selected.parent.addTerr(pId);
@@ -78,42 +77,72 @@ function getMapSVG() {
 
     const paths = document.querySelectorAll('#map-group path');
 
-    paths.forEach(st => {
-      let pId = st.id;
+    paths.forEach(p => {
+      let pId = p.id;
       provinceall = pId;
       provinces.set(pId, new Province(pId));
 
-      st.addEventListener('click', () => {
-        pId = st.id;
-        gid("message").innerHTML = `q selected ${pId}`;
+      p.addEventListener('click', () => {
+        pId = p.id;
+        gid("message").innerHTML = `selected ${pId}`;
         if (currentCountry < 0) {
           removeProvince(pId);
           console.log("remove");
         } else if (currentCountry > 0) {
-          setProvince(pId);
+          setProvince(pId, currentCountry);
           console.log("add");
         }
-        refreshMap();
+        updateMap();
       });
     });
   });
 }
 
-function refreshMap() {
-  // todo
+function getSave() {
+  const str = prompt("Please enter the save code:")
+  const data = JSON.parse(str);
+  resetMap();
+  for (const color in data.groups) {
+    //console.log(color);
+    const name = data.groups[color].label;
+    //console.log(name);
+    countries.set(name, new Country(name, color));
+    const paths = data.groups[color].paths;
+    console.log(paths);
+    for (const p in paths) {
+      if (provinces.has(p)) {
+        setProvince(p, name);
+      }
+    }
+  }
+  updateMap();
+  console.log("map updated!");
+  console.log(countries.get("Grand Principality of Ingria (Ben)"));
+}
+
+function resetMap() {
+  countries = new Map();
+  for (const p of provinces.values()) {
+    p.setParent(null);
+  }
+}
+
+function updateMap() {
   const paths = document.querySelectorAll('#map-group path');
   paths.forEach(p => {
     let pId = p.id;
     let parent = provinces.get(pId).parent;
+    console.log(provinces.get(pId));
     if (parent == null) {
       p.style.fill = "#EEEEEE";
     } else {
+      console.log("HELLO WORLD");
+      console.log(provinces.get(pId).parent.color);
       p.style.fill = provinces.get(pId).parent.color;
     }
   })
 }
 
-
-
 getMapSVG();
-gid("provinces").innerHTML = provinceall;
+updateMap();
+gid("provinces").innerHTML = "";
