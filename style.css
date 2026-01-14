@@ -7,21 +7,13 @@ html {
   user-select: none; 
 }
 
-.state path {
+#map-group path {
   fill: #eeeeee;
   stroke: #333;
   cursor: pointer;
   transition: fill 0.2s ease;
 }
 
-.state path:hover {
+#map-group path:hover {
   fill: #cccccc;
-}
-
-.state path.selected {
-  fill: red;
-}
-
-.state.active {
-  fill: #ffcc00;
 }

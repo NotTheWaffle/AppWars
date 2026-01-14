@@ -17,7 +17,7 @@ class Country {
 class Province {
   constructor(id) {
     this.id = id; // path id in the svg file, e.g. Texas_03
-    this.parent = null;  // the country that the province belongs to
+    this.parent = null;  // the country object that the province belongs to
   }
 
   setParent(parent) {
@@ -29,11 +29,12 @@ let provinces = new Map(); // province  id : province object
 let countries = new Map(); // country id : country object
 // made these so countries and provinces will have O(1) lookup times
 
-countries.set("Co1", new Country("Co1", "#FF0000"));
-countries.set("Co2", new Country("Co2", "#00FF00"));
-countries.set("Co3", new Country("Co3", "#0000FF"));
+countries.set(1, new Country("Co1", "#FF0000"));
+countries.set(2, new Country("Co2", "#00FF00"));
+countries.set(3, new Country("Co3", "#0000FF"));
 
 let currentCountry = 0;
+let provinceall = "";
 
 function gid(id) {
   return document.getElementById(id);
@@ -49,7 +50,7 @@ function country(id) {
 }
 
 function removeProvince(pId) {
-  p = provinces.get(pId);
+  let p = provinces.get(pId);
   if (p.parent !== null) {
     p.parent.removeTerr(pId);
   }
@@ -57,7 +58,7 @@ function removeProvince(pId) {
 }
 
 function setProvince(pId) {
-  selected = provinces.get(pId);
+  let selected = provinces.get(pId);
   gid("message").innerHTML = `selected ${pId}`;
   // if not null: delete province from the current country object that it is in
   if (selected.parent !== null) {
@@ -65,40 +66,34 @@ function setProvince(pId) {
   }
   // set the province's country to current country object
   selected.setParent(countries.get(currentCountry));
-  gid("message").innerHTML = `set ${pId} parent to ${selecte,,, d.parent.name}`;
+  console.log(selected.parent.name);
+  gid("message").innerHTML = `set ${pId} parent to ${selected.parent.name}`;
   // add province to current country object
   selected.parent.addTerr(pId);
 }
 
 function getMapSVG() {
-  fetch("assets/us_map.svg").then(res => res.text()).then(svg => {
+  fetch("assets/worldmap.svg").then(res => res.text()).then(svg => {
     gid("map-container").innerHTML = svg;
 
-    const paths = document.querySelectorAll('.state path');
+    const paths = document.querySelectorAll('#map-group path');
 
     paths.forEach(st => {
-      let pId = st.classList;
-      try {
-        provinces.set(pId, new Province(pId, null));
-      } catch (e) {
-        gid("message").innerHTML = `error ${st.classList}`;
-      }
+      let pId = st.id;
+      provinceall = pId;
+      provinces.set(pId, new Province(pId));
 
       st.addEventListener('click', () => {
-        pId = st.classList;
+        pId = st.id;
         gid("message").innerHTML = `q selected ${pId}`;
-        try {
-          selectedProvince = provinces.get(pId);  // Province object 
-        } catch (e) {
-          gid("message").innerHTML = `p error ${st.classList}`;
-        }
         if (currentCountry < 0) {
           removeProvince(pId);
+          console.log("remove");
         } else if (currentCountry > 0) {
           setProvince(pId);
+          console.log("add");
         }
-        //st.classList.toggle("selected");
-        //refreshMap();
+        refreshMap();
       });
     });
   });
@@ -106,9 +101,9 @@ function getMapSVG() {
 
 function refreshMap() {
   // todo
-  const paths = document.querySelectorAll('.state path');
+  const paths = document.querySelectorAll('#map-group path');
   paths.forEach(p => {
-    let pId = p.classList;
+    let pId = p.id;
     let parent = provinces.get(pId).parent;
     if (parent == null) {
       p.style.fill = "#EEEEEE";
@@ -118,4 +113,7 @@ function refreshMap() {
   })
 }
 
+
+
 getMapSVG();
+gid("provinces").innerHTML = provinceall;
