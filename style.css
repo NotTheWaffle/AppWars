@@ -12,6 +12,7 @@ html {
   stroke: #333;
   cursor: pointer;
   transition: fill 0.2s ease;
+  stroke-width: 0.2;
 }
 
 #map-group path:hover {

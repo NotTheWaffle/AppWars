@@ -1,7 +1,7 @@
 class Country {
   constructor(n, c) {
     this.name = n;
-    this.terrs = new Set(); // set of province id's rather than province 
+    this.terrs = new Set(); // set of province id's rather than province object
     this.color = c;
   }
 
@@ -15,9 +15,9 @@ class Country {
 }
 
 class Province {
-  constructor(id) {
-    this.id = id; // path id in the svg file, e.g. Texas_03
-    this.parent = null;  // the country object that the province belongs to
+  constructor(id, path) {
+    this.id = id; // path id in the svg file, e.g. Texas_3
+    this.parent = null;  // the country id (string) that the province belongs to
   }
 
   setParent(parent) {
@@ -25,9 +25,12 @@ class Province {
   }
 }
 
-let provinces = new Map(); // province  id : province object
+// the 2 objects below is the data used for main data transfer
+let provinces = new Map(); // province id : province object
 let countries = new Map(); // country id : country object
-// made these so countries and provinces will have O(1) lookup times
+
+// vector path lookup optimization
+let paths = new Map(); // province id : svg path object 
 
 countries.set(1, new Country("Red country", "#FF0000"));
 countries.set(2, new Country("Green empire", "#00FF00"));
@@ -50,49 +53,63 @@ function country(id) {
 }
 
 function removeProvince(pId) {
-  let p = provinces.get(pId);
+  const p = provinces.get(pId);
   if (p.parent !== null) {
     p.parent.removeTerr(pId);
   }
   p.setParent(null);
+
+  draw(pId, null);
+}
+
+function getParent(pId) { // gets the parent country object based on province id
+  //console.log("getting parent: " + provinces.get(pId).parent);
+  if (provinces.get(pId).parent !== null) {
+    return countries.get(provinces.get(pId).parent);
+  }
+  return null;
 }
 
 function setProvince(pId, parentId) {
-  let selected = provinces.get(pId);
   gid("message").innerHTML = `selected ${pId}`;
-  // if not null: delete province from the current country object that it is in
-  if (selected.parent !== null) {
-    selected.parent.removeTerr(pId);
+  const p = provinces.get(pId);
+  if (p.parent == parentId) {
+    return;
   }
-  // set the province's country to current country object
-  selected.setParent(countries.get(parentId));
-  gid("message").innerHTML = `set ${pId} parent to ${selected.parent.name}`;
+  
+  console.log(pId +" selected ");
+  if (p.parent !== null) {
+    getParent(pId).removeTerr(pId);
+  }
+  // set the province's parent country to current country object
+  p.setParent(parentId);
+  gid("message").innerHTML = `set ${pId} parent to ${p.parent}`;
   // add province to current country object
-  selected.parent.addTerr(pId);
+  getParent(pId).addTerr(pId);
+
+  draw(pId, parentId);
 }
 
 function getMapSVG() {
   fetch("assets/worldmap.svg").then(res => res.text()).then(svg => {
     gid("map-container").innerHTML = svg;
 
-    const paths = document.querySelectorAll('#map-group path');
+    const svgpaths = document.querySelectorAll('#map-group path');
 
-    paths.forEach(p => {
-      let pId = p.id;
-      pId = pId.replace("_0","_");
+    svgpaths.forEach(p => {
+      const pId = p.id.replace("_0","_");
       provinceall = pId;
-
       provinces.set(pId, new Province(pId));
+      paths.set(pId, p);
 
       p.addEventListener('click', () => {
-        pId = p.id;
+        const pId = p.id.replace("_0","_");
         gid("message").innerHTML = `selected ${pId}`;
         if (currentCountry < 0) {
           removeProvince(pId);
         } else if (currentCountry > 0) {
           setProvince(pId, currentCountry);
         }
-        updateMap();
       });
     });
   });
@@ -130,7 +147,6 @@ function getSave() {
   }
   updateMap();
   console.log("map updated!");
-  console.log(countries.get("Grand Principality of Ingria (Ben)"));
 }
 
 function unpackProvinceCode(p) {
@@ -159,21 +175,28 @@ function resetMap() {
   }
 }
 
+function draw(pId, parentId) {
+  if (parentId == null) {
+    paths.get(pId).style.fill = "#EEEEEE";
+    return;
+  }
+  paths.get(pId).style.fill = countries.get(parentId).color;
+}
+
 function updateMap() {
-  const paths = document.querySelectorAll('#map-group path');
+  const t0 = performance.now();
   paths.forEach(p => {
-    let pId = p.id;
-    pId = pId.replace("_0","_");
-    let parent = provinces.get(pId).parent;
+    const pId = p.id.replace("_0","_");
+    const parent = getParent(pId);
     if (parent == null) {
       p.style.fill = "#EEEEEE";
     } else {
-      console.log(provinces.get(pId).parent.color);
-      p.style.fill = provinces.get(pId).parent.color;
+      p.style.fill = parent.color;
     }
   })
+  
+  console.log(`Map updated. Took ${performance.now()-t0} ms.`);
 }
 
 getMapSVG();
 updateMap();
-gid("provinces").innerHTML = "";
