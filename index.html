@@ -1,37 +1,38 @@
 <!DOCTYPE html>
 <html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>Map Wars</title>
+		<link href="style.css" rel="stylesheet" type="text/css" />
+	</head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Map Wars</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
-</head>
+	<body>
+		<h1>Map Wars Software Prototype</h1>
+		<div id="map-container"></div>
 
-<body>
-  <h1>Map Wars Software Prototype</h1>
-  <div id="map-container"></div>
+		<div id="color-form">
+			<button id="country1-button" onclick="country(1)">
+				Edit Country 1
+			</button>
+			<button id="country2-button" onclick="country(2)">
+				Edit Country 2
+			</button>
+			<button id="country3-button" onclick="country(3)">
+				Edit Country 3
+			</button>
+			<button id="remove-terrs" onclick="country(-1)">
+				Remove Territories
+			</button>
+			<button id="update-map" onclick="updateMap()">Update Map</button>
+			<button id="get-save" onclick="getSave()">Load Save</button>
+		</div>
 
-  <div id="color-form">
-    <button id="country1-button" onclick="country(1)">Edit Country 1</button>
-    <button id="country2-button" onclick="country(2)">Edit Country 2</button>
-    <button id="country3-button" onclick="country(3)">Edit Country 3</button>
-    <button id="remove-terrs" onclick="country(-1)">Remove Territories</button>
-    <button id="update-map" onclick="updateMap()">Update Map</button>
-    <button id="get-save" onclick="getSave()">Load Save</button>
-  </div>
-  
-  <h2 id="message">
-    
-  </h2>
+		<h2 id="message"></h2>
 
-  <div id="provinces">
-    
-  </div>
-  <hr>
+		<div id="provinces"></div>
+		<hr />
 
-  <script src="script.js"></script>
-  
-</body>
-
+		<script src="script.js"></script>
+	</body>
 </html>
