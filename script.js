@@ -79,7 +79,9 @@ function getMapSVG() {
 
     paths.forEach(p => {
       let pId = p.id;
+      pId = pId.replace("_0","_");
       provinceall = pId;
+
       provinces.set(pId, new Province(pId));
 
       p.addEventListener('click', () => {
@@ -87,10 +89,8 @@ function getMapSVG() {
         gid("message").innerHTML = `selected ${pId}`;
         if (currentCountry < 0) {
           removeProvince(pId);
-          console.log("remove");
         } else if (currentCountry > 0) {
           setProvince(pId, currentCountry);
-          console.log("add");
         }
         updateMap();
       });
@@ -99,25 +99,57 @@ function getMapSVG() {
 }
 
 function getSave() {
-  const str = prompt("Please enter the save code:")
+  const str = prompt("Please enter the save code from MapChart:")
   const data = JSON.parse(str);
   resetMap();
-  for (const color in data.groups) {
+  for (let group in data.groups) {
+    console.log(group);
+    let color = group;
+    if (group.includes("_")) {
+      const match = group.match("_(.*?)_");
+      console.log("diagonal matched " + match);
+      color = match[1];
+      color = "#"+color;
+    }
     //console.log(color);
-    const name = data.groups[color].label;
+    const name = data.groups[group].label;
     //console.log(name);
-    countries.set(name, new Country(name, color));
-    const paths = data.groups[color].paths;
-    console.log(paths);
-    for (const p in paths) {
-      if (provinces.has(p)) {
-        setProvince(p, name);
+    const newCountry = new Country(name, color);
+    countries.set(name, newCountry);
+    const paths = data.groups[group].paths;
+    //console.log(paths);
+    for (const path of paths) {
+      console.log(path);
+      const unpacked = unpackProvinceCode(path);
+      for (let p of unpacked) {
+        console.log(p);
+        setProvince(p, name)
       }
     }
+    console.log(newCountry);
   }
   updateMap();
   console.log("map updated!");
   console.log(countries.get("Grand Principality of Ingria (Ben)"));
+}
+
+function unpackProvinceCode(p) {
+  let unpacked = [];
+  if (!p.includes("-")) {
+    unpacked.push(p);
+    return unpacked;
+  }
+  const base = p.match("(.+?_)\\d")[1];
+  const match = p.match("_(\\d+)-(\\d+)");
+  const lower = Number(match[1]);
+  const upper = Number(match[2]);
+
+  for (let i=lower; i<=upper; i++) {
+    unpacked.push(base+i);
+  }
+
+  return unpacked;
+
 }
 
 function resetMap() {
@@ -131,12 +163,11 @@ function updateMap() {
   const paths = document.querySelectorAll('#map-group path');
   paths.forEach(p => {
     let pId = p.id;
+    pId = pId.replace("_0","_");
     let parent = provinces.get(pId).parent;
-    console.log(provinces.get(pId));
     if (parent == null) {
       p.style.fill = "#EEEEEE";
     } else {
-      console.log("HELLO WORLD");
       console.log(provinces.get(pId).parent.color);
       p.style.fill = provinces.get(pId).parent.color;
     }
