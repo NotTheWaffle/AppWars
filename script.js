@@ -37,11 +37,14 @@ countries.set(2, new Country("Green empire", "#00FF00"));
 countries.set(3, new Country("Blue republic", "#0000FF"));
 
 let currentCountry = 0;
-let provinceall = "";
 
-getMapSVG();
-console.log(provinces);
-
+(async function init() {
+	const t0 = performance.now();
+	await getMapSVG();          // wait until getMapSVG finishes
+	//console.log(provinces);
+	console.log(`Init took ${performance.now() - t0} ms.`);
+	// TODO: fix it so that clicking on provinces will actually select them
+})();
 
 /* 
 ---------------------
@@ -56,12 +59,12 @@ async function getMapSVG() {
 		.then((res) => res.text())
 		.then((svg) => {
 			gid("map-container").innerHTML = svg;
+			enablePanZoom();
 
 			const svgpaths = document.querySelectorAll("#map-group path");
 
 			svgpaths.forEach((p) => {
 				const pId = p.id.replace("_0", "_");
-				provinceall = pId;
 				provinces.set(pId, new Province(pId));
 				paths.set(pId, p);
                 //console.log(pId);
@@ -83,6 +86,9 @@ async function getMapSVG() {
 
 function getSave() {
 	const str = prompt("Please enter the save code from MapChart:");
+	if (str === null) {
+		return;
+	}
 	const data = JSON.parse(str);
 	resetMap();
 	for (let group in data.groups) {
@@ -128,6 +134,75 @@ function updateMap() {
 	});
 
 	console.log(`Map updated. Took ${performance.now() - t0} ms.`);
+}
+
+// enable zooming on map
+function enablePanZoom() {
+	const svg = document.querySelector("#map-container svg");
+	if (!svg) {
+		console.log("Map not found!");
+		return;
+	}
+
+	const g = svg.querySelector("#map-group") || svg.documentElement;
+
+	let scale = 1;
+	let tx = 0; let ty = 0;
+	let drag = null;
+
+	function applyTransform() {
+		g.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
+	}
+
+	function resetTransform() {
+		scale = 3; tx = -1600; ty = -50; applyTransform();
+	}
+
+	resetTransform();
+
+	svg.addEventListener("wheel", (e) => {
+		e.preventDefault();
+
+		// yeah this zoom logic lowk has confusing ass math lmao
+
+		const rect = svg.getBoundingClientRect();
+		const cx = e.clientX - rect.left;
+		const cy = e.clientY - rect.top;
+		const delta = -e.deltaY; // get scroll amount
+		const zoomFactor = Math.exp(delta * 0.0015); // tweak sensitivity
+
+		const x = (cx - tx) / scale;
+		const y = (cy - ty) / scale;
+		scale = Math.min(Math.max(scale * zoomFactor, 1.2), 20);
+		tx = cx - x * scale;
+		ty = cy - y * scale;
+		applyTransform();
+	}, { passive : false });
+
+	svg.addEventListener("pointerdown", (e) => {
+		svg.setPointerCapture(e.pointerId);
+		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, tx, ty};
+	});
+
+	svg.addEventListener("pointermove", (e) => {
+		if (!drag || e.pointerId !== drag.id) return;
+		tx = drag.tx + (e.clientX - drag.sx);
+		ty = drag.ty + (e.clientY - drag.sy);
+		applyTransform();
+	});
+
+	svg.addEventListener("pointerup", (e) => {
+		if (drag && e.pointerId === drag.id) {
+			svg.releasePointerCapture(e.pointerId);
+			drag = null;
+		}
+	});
+
+	svg.addEventListener("pointercancel", () => { drag = null; });
+
+	//svg.addEventListener("dblclick", resetTransform);
+
+	applyTransform();
 }
 
 
@@ -236,8 +311,4 @@ function draw(pId, parentId) {
 		return;
 	}
 	paths.get(pId).style.fill = countries.get(parentId).color;
-}
-
-function sleep(ms) {
-
 }
