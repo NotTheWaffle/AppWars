@@ -17,7 +17,6 @@ html {
 	height: 100%;
 	display: block;
 	touch-action: none;
-	-webkit-user-select: none;
 	user-select: none;
 }
 
@@ -26,7 +25,7 @@ html {
 	stroke: #333;
 	cursor: pointer;
 	transition: fill 0.2s ease;
-	stroke-width: 0.15;
+	stroke-width: 0.1;
 }
 
 #map-group path:hover {

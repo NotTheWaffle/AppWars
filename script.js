@@ -64,13 +64,11 @@ async function getMapSVG() {
 			const svgpaths = document.querySelectorAll("#map-group path");
 
 			svgpaths.forEach((p) => {
-				const pId = p.id.replace("_0", "_");
+				const pId = reformatId(p.id);
 				provinces.set(pId, new Province(pId));
 				paths.set(pId, p);
-                //console.log(pId);
-
 				p.addEventListener("click", () => {
-					const pId = p.id.replace("_0", "_");
+					const pId = reformatId(p.id);
 					gid("message").innerHTML = `selected ${pId}`;
 					if (currentCountry < 0) {
 						removeProvince(pId);
@@ -80,8 +78,8 @@ async function getMapSVG() {
 				});
 			});
 		});
-    console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
-    updateMap();
+	console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
+	updateMap();
 }
 
 function getSave() {
@@ -104,27 +102,25 @@ function getSave() {
 		const name = data.groups[group].label;
 		const newCountry = new Country(name, color);
 		const paths = data.groups[group].paths;
-        
+
 		countries.set(name, newCountry);
 		for (const path of paths) {
-			console.log(path);
+			console.log(`unpacking: ${path}`);
 			const unpacked = unpackProvinceCode(path);
 			for (let p of unpacked) {
-				console.log(p);
 				setProvince(p, name);
 			}
 		}
 		console.log(newCountry);
 	}
 	updateMap();
-	console.log("map updated!");
 }
 
 // updates the map svg graphic
 function updateMap() {
 	const t0 = performance.now();
 	paths.forEach((p) => {
-		const pId = p.id.replace("_0", "_");
+		const pId = reformatId(p.id);
 		const parent = getParent(pId);
 		if (parent == null) {
 			p.style.fill = "#EEEEEE";
@@ -173,15 +169,15 @@ function enablePanZoom() {
 
 		const x = (cx - tx) / scale;
 		const y = (cy - ty) / scale;
-		scale = Math.min(Math.max(scale * zoomFactor, 1.2), 20);
+		scale = Math.min(Math.max(scale * zoomFactor, 1.2), 30);
 		tx = cx - x * scale;
 		ty = cy - y * scale;
 		applyTransform();
-	}, { passive : false });
+	}, { passive: false });
 
 	svg.addEventListener("pointerdown", (e) => {
 		svg.setPointerCapture(e.pointerId);
-		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, tx, ty};
+		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, tx, ty };
 	});
 
 	svg.addEventListener("pointermove", (e) => {
@@ -212,7 +208,7 @@ PRIMARY HELPER FUNCTIONS
 Larger helper functions that are called
 only once or twice.
 -----------------------------
-*/ 
+*/
 
 function country(id) {
 	currentCountry = id;
@@ -225,15 +221,21 @@ function country(id) {
 
 function setProvince(pId, parentId) {
 	gid("message").innerHTML = `selected ${pId}`;
+	console.log(`Setting province: ${pId}`);
 	const p = provinces.get(pId);
+
+	try {
+		p.parent;
+	} catch (e) {
+		console.log(`${pId} unsuccessful.`);
+		return;
+	}
 
 	if (p.parent == parentId) {
 		return;
 	}
 
-	console.log(pId + " selected ");
-    
-    // removes province from parent
+	// removes province from parent
 	if (p.parent !== null) {
 		getParent(pId).removeTerr(pId);
 	}
@@ -261,11 +263,11 @@ function removeProvince(pId) {
 // returns a list of province id's based on province code from the MapChart JSON
 function unpackProvinceCode(p) {
 	let unpacked = [];
-	if (!p.includes("-")) {
+	if (p.match("_(\\d+)-(\\d+)") === null) {
 		unpacked.push(p);
 		return unpacked;
 	}
-	const base = p.match("(.+?_)\\d")[1];
+	const base = p.match("(.+_)\\d+-\\d+$")[1];
 	const match = p.match("_(\\d+)-(\\d+)");
 	const lower = Number(match[1]);
 	const upper = Number(match[2]);
@@ -282,10 +284,14 @@ function unpackProvinceCode(p) {
 ---------------------
 SECONDARY HELPER FUNCTIONS
 ---------------------
-*/ 
+*/
 
 function gid(id) {
 	return document.getElementById(id);
+}
+
+function reformatId(id) {
+	return id.replaceAll("_0", "_");
 }
 
 // gets the parent country object based on province id
