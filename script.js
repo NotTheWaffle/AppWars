@@ -225,13 +225,11 @@ function setProvince(pId, parentId) {
 	const p = provinces.get(pId);
 
 	try {
-		p.parent;
-	} catch (e) {
+		if (p.parent === parentId) {
+			return;
+		}
+	} catch (e) { // if province pId doesn't exist
 		console.log(`${pId} unsuccessful.`);
-		return;
-	}
-
-	if (p.parent === parentId) {
 		return;
 	}
 
