@@ -9,7 +9,7 @@ class Country {
 		this.terrs.add(pId);
 	}
 
-	removeTerr(pId) {
+	removeTerr(pId) { // please do not use this in main logic functions
 		this.terrs.delete(pId);
 	}
 }
@@ -33,19 +33,16 @@ let countries = new Map(); // country id : country object
 let paths = new Map(); // province id : svg path object
 
 let currentCountry = null;
-let nextId = 1;
+let isPainting = false;
 
-countries.set(nextId, new Country("Red country", "#FF0000"));
-nextId++;
-countries.set(nextId, new Country("Green empire", "#00FF00"));
-nextId++;
-countries.set(nextId, new Country("Blue republic", "#0000FF"));
-nextId++;
+countries.set(1, new Country("Red country", "#FF0000"));
+countries.set(2, new Country("Green empire", "#00FF00"));
+countries.set(3, new Country("Blue republic", "#0000FF"));
 
 
 (async function init() {
 	const t0 = performance.now();
-	await getMapSVG();          // wait until getMapSVG finishes
+	await initMap();          // wait until getMapSVG finishes
 	//console.log(provinces);
 	console.log(`Init took ${performance.now() - t0} ms.`);
 	// TODO: fix it so that clicking on provinces will actually select them
@@ -58,35 +55,46 @@ MAIN LOGIC FUNCTIONS
 */
 
 // retrieves map SVG object once the page loads
-async function getMapSVG() {
+async function initMap() {
 	const t0 = performance.now();
+	initPaintHandler();
 	await fetch("assets/worldmap.svg")
 		.then((res) => res.text())
 		.then((svg) => {
 			gid("map-container").innerHTML = svg;
 			enablePanZoom();
 
-			const svgpaths = document.querySelectorAll("#map-group path");
+			const svgPaths = document.querySelectorAll("#map-group path");
 
-			svgpaths.forEach((p) => {
+			svgPaths.forEach((p) => {
 				const pId = reformatId(p.id);
 				provinces.set(pId, new Province(pId));
 				paths.set(pId, p);
-				p.addEventListener("pointerdown", (e) => {
-				e.stopPropagation();
-				const pId = reformatId(p.id);
 
-				if (currentCountry === null) {
-					gid("message").innerHTML = "No country selected";
-					return;
-				}
+				p.addEventListener("mouseenter", (e) => {
+					gid("hover").innerHTML = `Hovering: ${reformatId(p.id)}`;
 
-				if (currentCountry === -1) {
-					removeProvince(pId);
-				} else {
-					setProvince(pId, currentCountry);
-				}
-			});
+					if (isPainting) {
+						if (e.ctrlKey) return;
+						const pId = reformatId(p.id);
+
+						if (currentCountry === null) {
+							gid("message").innerHTML = "No country selected";
+							return;
+						}
+
+						if (currentCountry === -1) {
+							removeProvince(pId);
+						} else {
+							setProvince(pId, currentCountry);
+						}
+					}
+				});
+
+				p.addEventListener("mouseleave", () => {
+					gid("hover").innerHTML = `Hovering: none`;
+				});
+
 			});
 		});
 	console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
@@ -95,6 +103,8 @@ async function getMapSVG() {
 }
 
 function getSave() {
+	let nextId = 1;
+
 	const str = prompt("Please enter the save code from MapChart:");
 	if (str === null) {
 		return;
@@ -111,11 +121,12 @@ function getSave() {
 			color = "#" + color;
 		}
 
-		const newCountry = new Country(name, color);
+		const curGroup = data["groups"][group];
+		const newCountry = new Country(curGroup["label"], color);
 		const id = nextId++;
 		countries.set(id, newCountry);
 
-		for (const path of paths) {
+		for (const path of curGroup["paths"]) {
 			const unpacked = unpackProvinceCode(path);
 			for (let p of unpacked) {
 				setProvince(p, id);
@@ -124,6 +135,8 @@ function getSave() {
 
 		console.log(newCountry);
 	}
+
+	currentCountry = null;
 	updateMap();
 }
 
@@ -145,13 +158,13 @@ function updateMap() {
 
 // enable zooming on map
 function enablePanZoom() {
-	const svg = document.querySelector("#map-container svg");
+	const svg = getMapSVG();
 	if (!svg) {
 		console.log("Map not found!");
 		return;
 	}
 
-	const g = svg.querySelector("#map-group") || svg.documentElement;
+	const g = svg.querySelector("#map-group");
 
 	let scale = 1;
 	let tx = 0; let ty = 0;
@@ -187,22 +200,28 @@ function enablePanZoom() {
 	}, { passive: false });
 
 	svg.addEventListener("pointerdown", (e) => {
+		if (!e.ctrlKey) {
+			isPainting = true;
+			return;
+		}
+
 		svg.setPointerCapture(e.pointerId);
 		drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, tx, ty };
-	});
 
-	svg.addEventListener("pointermove", (e) => {
-		if (!drag || e.pointerId !== drag.id) return;
-		tx = drag.tx + (e.clientX - drag.sx);
-		ty = drag.ty + (e.clientY - drag.sy);
-		applyTransform();
-	});
+		svg.addEventListener("pointermove", (e) => {
+			if (!drag || e.pointerId !== drag.id) return;
+			tx = drag.tx + (e.clientX - drag.sx);
+			ty = drag.ty + (e.clientY - drag.sy);
+			applyTransform();
+		});
 
-	svg.addEventListener("pointerup", (e) => {
-		if (drag && e.pointerId === drag.id) {
-			svg.releasePointerCapture(e.pointerId);
-			drag = null;
-		}
+		svg.addEventListener("pointerup", (e) => {
+			isPainting = false;
+			if (drag && e.pointerId === drag.id) {
+				svg.releasePointerCapture(e.pointerId);
+				drag = null;
+			}
+		});
 	});
 
 	svg.addEventListener("pointercancel", () => { drag = null; });
@@ -212,12 +231,15 @@ function enablePanZoom() {
 	applyTransform();
 }
 
+function initPaintHandler() {
+	document.addEventListener("pointerup", () => {
+		isPainting = false;
+	});
+}
 
 /* 
 -----------------------------
 PRIMARY HELPER FUNCTIONS
-Larger helper functions that are called
-only once or twice.
 -----------------------------
 */
 
@@ -233,7 +255,6 @@ function country(id) {
 
 
 function setProvince(pId, parentId) {
-	console.log("painted");
 	gid("message").innerHTML = `selected ${pId}`;
 	console.log(`Setting province: ${pId}`);
 	const p = provinces.get(pId);
@@ -254,22 +275,24 @@ function setProvince(pId, parentId) {
 
 	// set the province's parent country to current country object
 	p.setParent(parentId);
-	gid("message").innerHTML = `set ${pId} parent to ${p.parent}`;
 
 	// add province to current country object
 	getParent(pId).addTerr(pId);
 
-	draw(pId, parentId);
+	paint(pId, parentId);
 }
 
 function removeProvince(pId) {
 	const p = provinces.get(pId);
+
 	if (p.parent !== null) {
 		getParent(pId).removeTerr(pId);
-	}
-	p.setParent(null);
+	} else { return; }
 
-	draw(pId, null);
+	p.setParent(null);
+	paint(pId, null);
+
+	console.log(`Removed ${pId}`);
 }
 
 // returns a list of province id's based on province code from the MapChart JSON
@@ -302,6 +325,10 @@ function gid(id) {
 	return document.getElementById(id);
 }
 
+function getMapSVG() {
+	return document.querySelector("#map-container");
+}
+
 function reformatId(id) {
 	return id.replaceAll("_0", "_");
 }
@@ -323,7 +350,7 @@ function resetMap() {
 }
 
 // updates a single province path
-function draw(pId, parentId) {
+function paint(pId, parentId) {
 	if (parentId == null) {
 		paths.get(pId).style.fill = "#EEEEEE";
 		return;
