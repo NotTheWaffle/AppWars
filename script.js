@@ -71,11 +71,24 @@ async function initMap() {
 				provinces.set(pId, new Province(pId));
 				paths.set(pId, p);
 
-				p.addEventListener("mouseenter", (e) => {
-					gid("hover").innerHTML = `Hovering: ${reformatId(p.id)}`;
+				p.addEventListener("pointerdown", (e) => {
+					isPainting = true;
+					e.preventDefault();
+					paintProvince(p, e);
+				});
 
+				p.addEventListener("pointerenter", (e) => {
+					gid("hover").innerHTML = `Hovering: ${reformatId(p.id)}`;
+					paintProvince(p, e);
+				});
+
+				p.addEventListener("pointerleave", () => {
+					gid("hover").innerHTML = `Hovering: none`;
+				});
+
+				function paintProvince(p, event) {
 					if (isPainting) {
-						if (e.ctrlKey) return;
+						if (event.ctrlKey) return;
 						const pId = reformatId(p.id);
 
 						if (currentCountry === null) {
@@ -89,11 +102,7 @@ async function initMap() {
 							setProvince(pId, currentCountry);
 						}
 					}
-				});
-
-				p.addEventListener("mouseleave", () => {
-					gid("hover").innerHTML = `Hovering: none`;
-				});
+				}
 
 			});
 		});
@@ -216,7 +225,6 @@ function enablePanZoom() {
 		});
 
 		svg.addEventListener("pointerup", (e) => {
-			isPainting = false;
 			if (drag && e.pointerId === drag.id) {
 				svg.releasePointerCapture(e.pointerId);
 				drag = null;
