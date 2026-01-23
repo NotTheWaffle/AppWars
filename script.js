@@ -32,11 +32,16 @@ let countries = new Map(); // country id : country object
 // vector path lookup optimization
 let paths = new Map(); // province id : svg path object
 
-countries.set(1, new Country("Red country", "#FF0000"));
-countries.set(2, new Country("Green empire", "#00FF00"));
-countries.set(3, new Country("Blue republic", "#0000FF"));
+let currentCountry = null;
+let nextId = 1;
 
-let currentCountry = 0;
+countries.set(nextId, new Country("Red country", "#FF0000"));
+nextId++;
+countries.set(nextId, new Country("Green empire", "#00FF00"));
+nextId++;
+countries.set(nextId, new Country("Blue republic", "#0000FF"));
+nextId++;
+
 
 (async function init() {
 	const t0 = performance.now();
@@ -67,19 +72,26 @@ async function getMapSVG() {
 				const pId = reformatId(p.id);
 				provinces.set(pId, new Province(pId));
 				paths.set(pId, p);
-				p.addEventListener("click", () => {
-					const pId = reformatId(p.id);
-					gid("message").innerHTML = `selected ${pId}`;
-					if (currentCountry < 0) {
-						removeProvince(pId);
-					} else if (currentCountry > 0) {
-						setProvince(pId, currentCountry);
-					}
-				});
+				p.addEventListener("pointerdown", (e) => {
+				e.stopPropagation();
+				const pId = reformatId(p.id);
+
+				if (currentCountry === null) {
+					gid("message").innerHTML = "No country selected";
+					return;
+				}
+
+				if (currentCountry === -1) {
+					removeProvince(pId);
+				} else {
+					setProvince(pId, currentCountry);
+				}
+			});
 			});
 		});
 	console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
 	updateMap();
+
 }
 
 function getSave() {
@@ -99,18 +111,17 @@ function getSave() {
 			color = "#" + color;
 		}
 
-		const name = data.groups[group].label;
 		const newCountry = new Country(name, color);
-		const paths = data.groups[group].paths;
+		const id = nextId++;
+		countries.set(id, newCountry);
 
-		countries.set(name, newCountry);
 		for (const path of paths) {
-			console.log(`unpacking: ${path}`);
 			const unpacked = unpackProvinceCode(path);
 			for (let p of unpacked) {
-				setProvince(p, name);
+				setProvince(p, id);
 			}
 		}
+
 		console.log(newCountry);
 	}
 	updateMap();
@@ -212,14 +223,17 @@ only once or twice.
 
 function country(id) {
 	currentCountry = id;
-	if (id > 0) {
-		gid("message").innerHTML = `Editing country ${countries.get(id).name}`;
+	if (id === -1) {
+		gid("message").innerHTML = "Removing territories";
 	} else {
-		gid("message").innerHTML = `Removing territories`;
+		gid("message").innerHTML =
+			`Editing country ${countries.get(id).name}`;
 	}
 }
 
+
 function setProvince(pId, parentId) {
+	console.log("painted");
 	gid("message").innerHTML = `selected ${pId}`;
 	console.log(`Setting province: ${pId}`);
 	const p = provinces.get(pId);
