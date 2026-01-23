@@ -25,7 +25,7 @@ class Province {
 	}
 }
 
-// the 2 objects below is the data used for main data transfer
+// the 2 hashmaps below is the data used for main data transfer
 let provinces = new Map(); // province id : province object
 let countries = new Map(); // country id : country object
 
@@ -231,7 +231,7 @@ function setProvince(pId, parentId) {
 		return;
 	}
 
-	if (p.parent == parentId) {
+	if (p.parent === parentId) {
 		return;
 	}
 
