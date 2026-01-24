@@ -180,6 +180,8 @@ function enablePanZoom() {
 	let drag = null;
 
 	function applyTransform() {
+		tx = Math.min(tx, 0);
+		ty = Math.min(ty, 0);
 		g.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
 	}
 
@@ -202,7 +204,7 @@ function enablePanZoom() {
 
 		const x = (cx - tx) / scale;
 		const y = (cy - ty) / scale;
-		scale = Math.min(Math.max(scale * zoomFactor, 1.2), 30);
+		scale = Math.min(Math.max(scale * zoomFactor, 1.1), 30);
 		tx = cx - x * scale;
 		ty = cy - y * scale;
 		applyTransform();
