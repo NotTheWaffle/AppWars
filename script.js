@@ -212,7 +212,6 @@ function enablePanZoom() {
 
 	svg.addEventListener("pointerdown", (e) => {
 		if (!e.ctrlKey) {
-			isPainting = true;
 			return;
 		}
 
