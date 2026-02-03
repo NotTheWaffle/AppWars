@@ -17,21 +17,12 @@
 		<hr>
 
 		<div id="color-form">
-			<button id="country1-button" onclick="country(1)">
-				Edit Country 1
-			</button>
-			<button id="country2-button" onclick="country(2)">
-				Edit Country 2
-			</button>
-			<button id="country3-button" onclick="country(3)">
-				Edit Country 3
-			</button>
-			<button id="remove-terrs" onclick="country(-1)">
-				Remove Territories
-			</button>
-			<button id="update-map" onclick="updateMap()">Update Map</button>
-			<button id="get-save" onclick="getSave()">Load Save</button>
+			<select id="country-select"></select>
+
+			<button onclick="updateMap()">Update Map</button>
+			<button onclick="getSave()">Load Save</button>
 		</div>
+
 
 		<h2 id="message"></h2>
 

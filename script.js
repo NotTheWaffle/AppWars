@@ -1,3 +1,4 @@
+//#region CLASSES
 class Country {
 	constructor(n, c) {
 		this.name = n;
@@ -25,6 +26,7 @@ class Province {
 	}
 }
 
+//#region GLOBALS & INITIATION
 // the 2 hashmaps below is the data used for main data transfer
 let provinces = new Map(); // province id : province object
 let countries = new Map(); // country id : country object
@@ -34,6 +36,7 @@ let paths = new Map(); // province id : svg path object
 
 let currentCountry = null;
 let isPainting = false;
+let startingParentId = null;
 
 countries.set(1, new Country("Red country", "#FF0000"));
 countries.set(2, new Country("Green empire", "#00FF00"));
@@ -48,6 +51,7 @@ countries.set(3, new Country("Blue republic", "#0000FF"));
 	// TODO: fix it so that clicking on provinces will actually select them
 })();
 
+//#region MAIN LOGIC
 /* 
 ---------------------
 MAIN LOGIC FUNCTIONS
@@ -58,6 +62,17 @@ MAIN LOGIC FUNCTIONS
 async function initMap() {
 	const t0 = performance.now();
 	initPaintHandler();
+	gid("country-select").addEventListener("change", (e) => {
+		const val = e.target.value;
+
+		if (val === "null") {
+			country(null);
+		} else {
+			country(Number(val));
+		}
+	});
+	updateCountryDropdown();
+
 	await fetch("assets/worldmap.svg")
 		.then((res) => res.text())
 		.then((svg) => {
@@ -74,6 +89,8 @@ async function initMap() {
 				p.addEventListener("pointerdown", (e) => {
 					isPainting = true;
 					e.preventDefault();
+					const pId = reformatId(p.id);
+					startingParentId = provinces.get(pId).parent;  // note can be null i think
 					paintProvince(p, e);
 				});
 
@@ -87,20 +104,21 @@ async function initMap() {
 				});
 
 				function paintProvince(p, event) {
-					if (isPainting) {
-						if (event.ctrlKey) return;
-						const pId = reformatId(p.id);
+					if (!isPainting) return;
+					if (event.ctrlKey) return;
 
-						if (currentCountry === null) {
-							gid("message").innerHTML = "No country selected";
-							return;
-						}
+					const pId = reformatId(p.id);
+					const province = provinces.get(pId);
+					if (currentCountry === null) {
+						gid("message").innerHTML = "No country selected";
+						return;
+					}
+					if (province.parent !== startingParentId) return;
 
-						if (currentCountry === -1) {
-							removeProvince(pId);
-						} else {
-							setProvince(pId, currentCountry);
-						}
+					if (currentCountry === -1) {
+						removeProvince(pId);
+					} else {
+						setProvince(pId, currentCountry);
 					}
 				}
 
@@ -108,9 +126,9 @@ async function initMap() {
 		});
 	console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
 	updateMap();
-
 }
 
+//#region LOADING SAVE
 function getSave() {
 	let nextId = 1;
 
@@ -146,9 +164,11 @@ function getSave() {
 	}
 
 	currentCountry = null;
+	updateCountryDropdown();
 	updateMap();
 }
 
+//#region UPDATE MAP
 // updates the map svg graphic
 function updateMap() {
 	const t0 = performance.now();
@@ -165,15 +185,20 @@ function updateMap() {
 	console.log(`Map updated. Took ${performance.now() - t0} ms.`);
 }
 
+//#region PANNING MAP
 // enable zooming on map
 function enablePanZoom() {
+	
 	const svg = getMapSVG();
+
 	if (!svg) {
 		console.log("Map not found!");
 		return;
 	}
 
 	const g = svg.querySelector("#map-group");
+	const bbox = g.getBBox();
+	const mapWidth = bbox.width;
 
 	let scale = 1;
 	let tx = 0; let ty = 0;
@@ -211,7 +236,7 @@ function enablePanZoom() {
 	}, { passive: false });
 
 	svg.addEventListener("pointerdown", (e) => {
-		if (!e.ctrlKey) {
+		if (!e.ctrlKey && currentCountry != null) {
 			isPainting = true;
 			return;
 		}
@@ -241,6 +266,8 @@ function enablePanZoom() {
 	applyTransform();
 }
 
+
+//#region HELPERS
 function initPaintHandler() {
 	document.addEventListener("pointerup", () => {
 		isPainting = false;
@@ -255,6 +282,7 @@ PRIMARY HELPER FUNCTIONS
 
 function country(id) {
 	currentCountry = id;
+	if (id === null) return;
 	if (id === -1) {
 		gid("message").innerHTML = "Removing territories";
 	} else {
@@ -305,6 +333,7 @@ function removeProvince(pId) {
 	console.log(`Removed ${pId}`);
 }
 
+//#region UNPACKING PROVINCES
 // returns a list of province id's based on province code from the MapChart JSON
 function unpackProvinceCode(p) {
 	let unpacked = [];
@@ -324,12 +353,38 @@ function unpackProvinceCode(p) {
 	return unpacked;
 }
 
+function updateCountryDropdown() {
+	const select = gid("country-select");
+	select.innerHTML = "";
+	const moveOpt = document.createElement("option");
+	moveOpt.value = "null";
+	moveOpt.textContent = "Move map";
+	select.appendChild(moveOpt);
+
+	for (const [id,country] of countries.entries()) {
+		const opt = document.createElement("option");
+		opt.value = id;
+		opt.textContent = country.name;
+		select.appendChild(opt);
+	}
+
+	const removeOpt = document.createElement("option");
+	removeOpt.value = "-1";
+	removeOpt.textContent = "Remove Territories";
+	select.appendChild(removeOpt);
+
+	select.value = "null";
+}
+
+
+
 
 /* 
 ---------------------
 SECONDARY HELPER FUNCTIONS
 ---------------------
 */
+//#region SECONDARY HELPERS
 
 function gid(id) {
 	return document.getElementById(id);
