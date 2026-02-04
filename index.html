@@ -8,27 +8,22 @@
 	</head>
 
 	<body>
-		<h1>Map Wars Software Prototype</h1>
+		<div id="app">
+			<div id="map-container"></div>
 
-		<p>Instructions: <strong>Ctrl + Drag, to pan the map.</strong> </p>
+			<aside class="sidebar" id="sidebar">
+				<h3>Map Controls</h3>
 
-		<hr>
-		<div id="map-container"></div>
-		<hr>
+				<select id="country-select"></select>
+				<button onclick="updateMap()">Update Map</button>
+				<button onclick="getSave()">Load Save</button>
 
-		<div id="color-form">
-			<select id="country-select"></select>
-
-			<button onclick="updateMap()">Update Map</button>
-			<button onclick="getSave()">Load Save</button>
+				<h2 id="message"></h2>
+				<p id="hover"></p>
+			</aside>
 		</div>
-
-
-		<h2 id="message"></h2>
-
-		<p id="hover"></p>
-		<hr>
 
 		<script src="script.js"></script>
 	</body>
+
 </html>

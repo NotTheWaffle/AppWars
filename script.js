@@ -126,6 +126,7 @@ async function initMap() {
 		});
 	console.log(`Map fetched. Took ${performance.now() - t0} ms.`);
 	updateMap();
+	gid("sidebar").width = "250px";
 }
 
 //#region LOADING SAVE
@@ -204,11 +205,25 @@ function enablePanZoom() {
 	let tx = 0; let ty = 0;
 	let drag = null;
 
+	function clamp() {
+		const svgRect = svg.getBoundingClientRect();
+
+		const mapW = bbox.width * scale;
+		const mapH = bbox.height * scale;
+
+		const minTx = Math.min(0, svgRect.width - mapW);
+		const minTy = Math.min(0, svgRect.height - mapH);
+
+		tx = Math.max(minTx, Math.min(0, tx));
+		ty = Math.max(minTy, Math.min(0, ty));
+	}
+
+
 	function applyTransform() {
-		tx = Math.min(tx, 0);
-		ty = Math.min(ty, 0);
+		clamp()
 		g.setAttribute("transform", `translate(${tx} ${ty}) scale(${scale})`);
 	}
+
 
 	function resetTransform() {
 		scale = 3; tx = -1600; ty = -50; applyTransform();
@@ -273,6 +288,10 @@ function initPaintHandler() {
 		isPainting = false;
 	});
 }
+
+document.addEventListener("keydown", function(e) {
+	if (e.key === "Escape") {country(null)}
+})
 
 /* 
 -----------------------------
